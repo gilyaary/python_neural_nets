@@ -9,7 +9,7 @@ class Activation:
     def sigmoid(z):
         return 1 / ( 1 + (np.exp(-z)) )
             
-class NeuralNode:
+class LinkedNeuralNode:
 
     def __init__(self, inputCount):
         self.inputCount = inputCount
@@ -40,19 +40,23 @@ class NeuralNode:
         #(m,1)
         dz = (expz / np.square(1+expz)) * nextGradient
         #print(dz)
-        inputColumnsCount = 4
+        rowCount = np.shape(self.inputMatrix)[0]
+        inputColumnsCount = np.shape(self.inputMatrix)[1]
         dzTiled = np.tile(dz,(inputColumnsCount, 1))
-        dw = self.inputMatrix * dzTiled.T;
+        dw = self.inputMatrix * dzTiled.T
+        db = dzTiled 
         #Now calculate the average slope in each input to get 1*inputColumnsCount vector
         #the previous stage will use the correct slope by index
+        avgDw = dw.mean(0)
+        avgDb = np.sum(db) / rowCount
         
-        return dw
+        return {'dw':avgDw, 'db':avgDb}
 
     def adjustWeights(self):
         'internal adjustment no need to expose'
         return 0
 
-nn = NeuralNode(4)
+nn = LinkedNeuralNode(4)
 '''
 activation = nn.getActivation()
 print("Activation:", activation)
@@ -77,4 +81,4 @@ print(a)
 dw = nn.getGradient()
 print(dw)
 
-                     
+          
