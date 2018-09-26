@@ -1,8 +1,45 @@
+
+#Put all in a package called NeuralNet
+import numpy as np
+
 class Node:
     def __init__(self, name, layerIndex):
         self.name = name
         self.layerIndex = layerIndex;
+        self.ins = []
+        self.outs = []
+        #We have weights for inputs. One for each in edge 
+        self.weights = []
+        #the activation of the neuralNode
+        self.out = 0
+        #we use the name slopes to desribe a gradient. One slope per input
+        self.slopes = []
+        self.activationFunction = SigmoidActivation()
 
+class SigmoidActivation:
+    def apply(z):
+        return 1/(1+np.exp(-z))
+
+class ThresholdActivation:
+    def apply(z):
+        if z > 0:
+            return 1
+        else:
+            return 0
+
+class ReLuActivation:
+    def apply(z):
+        if z > 0:
+            return z
+        else:
+            return 0
+    
+class Edge:
+    def __init__(self, leftNode, rightNode):
+        self.leftNode = leftNode
+        self.rightNode = rightNode
+        self.weight = 0
+        
 class Layer:
     def __init__(self,name):
         self.prevLayer = None
@@ -57,7 +94,10 @@ class LayerBuilder:
                     layer.nodes.append(node2)
                 else:
                     node2 = self.nodeMap[node2Name]
-                    
+
+                #Now we know that this relation is new so we add it to both nodes
+                node1.outs.append(node2)
+                node2.ins.append(node1)
     
 l_1 = Layer('L1')
 lb = LayerBuilder()
@@ -87,3 +127,14 @@ for layer in lb.layers:
         print('+', node.name)
     print('-----------')
     
+
+'''
+The way this code works is:
+    When doing push forward we call layers[0].fwd()
+    When doing back propagation we call layers[N-1].back()
+    These calls will bring about a chain of subsequent calls:
+    Each layer:
+       1. calls all nodes in that layer to either calculate the activation (fwd) or the gradient (back)
+       2. Calls the next layer (fwd) or previous layer (back)
+    
+'''
