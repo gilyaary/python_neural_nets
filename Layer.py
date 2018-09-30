@@ -11,24 +11,44 @@ class Node:
         #We have weights for inputs. One for each in edge 
         self.weights = []
         #the activation of the neuralNode
-        self.out = 0
+        self.outValue = []
         #we use the name slopes to desribe a gradient. One slope per input
         self.slopes = []
         self.activationFunction = SigmoidActivation()
-
+    def fwd(self):
+        
+        print(self.name, 'Forward')
+        if self.layerIndex > 0:
+            inputCount = len(self.ins)
+            self.weights = np.random.rand(inputCount)
+            inputMatrix = np.zeros(( inputCount, len(self.ins[0].outValue) ))
+            i = 0
+            for input in self.ins:
+                #print(input.outValue)
+                inputMatrix[i] = input.outValue
+                i = i+1
+            print(inputMatrix)
+            z = np.dot(inputMatrix.T, self.weights)
+            print(z)
+            self.outValue = self.activationFunction.apply(z)
+            print(self.outValue)
+            
+    def back(self):
+        print(self.name, 'BackProp')
+        
 class SigmoidActivation:
-    def apply(z):
+    def apply(self, z):
         return 1/(1+np.exp(-z))
 
 class ThresholdActivation:
-    def apply(z):
+    def apply(self,z):
         if z > 0:
             return 1
         else:
             return 0
 
 class ReLuActivation:
-    def apply(z):
+    def apply(self, z):
         if z > 0:
             return z
         else:
@@ -47,6 +67,18 @@ class Layer:
         self.nodes = []
         self.name = name
         #print(name)
+
+    def fwd(self):
+        for node in self.nodes:
+            node.fwd()
+        if(self.nextLayer):
+            self.nextLayer.fwd()
+
+    def back(self):
+        for node in self.nodes:
+            node.back()
+        if(self.prevLayer):
+            self.prevLayer.back()
 
 class LayerBuilder:
     def __init__(self):
@@ -114,6 +146,7 @@ lines=(
 lb.build(lines)
 #print(lb.layers)
 #print(lb.nodeMap)
+'''
 for layer in lb.layers:
     nextLayerName = ''
     prevLayerName = ''
@@ -129,6 +162,7 @@ for layer in lb.layers:
     
 
 '''
+'''
 The way this code works is:
     When doing push forward we call layers[0].fwd()
     When doing back propagation we call layers[N-1].back()
@@ -138,3 +172,11 @@ The way this code works is:
        2. Calls the next layer (fwd) or previous layer (back)
     
 '''
+lb.layers[0].nodes[0].outValue = np.array([1,1,1,1,1,1,1,1,1,1])
+lb.layers[0].nodes[1].outValue = np.array([2,2,2,2,2,2,2,2,2,2])
+lb.layers[0].nodes[2].outValue = np.array([3,3,3,3,3,3,3,3,3,3])
+
+
+lb.layers[0].fwd()
+lastLayerIndex = len(lb.layers)-1
+lb.layers[lastLayerIndex].back()
