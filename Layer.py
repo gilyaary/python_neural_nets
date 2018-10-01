@@ -28,7 +28,7 @@ class Node:
         self.bias = np.random.rand()
 
     def fwd(self):
-        print(self.name, 'Forward')
+        #print(self.name, 'Forward')
         if self.layerIndex > 0 and not self.lastNode:
             inputCount = len(self.ins)
             self.inputMatrix = np.zeros(( inputCount, len(self.ins[0].outValue) ))
@@ -46,19 +46,22 @@ class Node:
         if self.lastNode == True:
                 #print(self.name, 'Is Last')
                 inputValues = self.ins[0].outValue
+                #print('****** Result Input ****** : ', inputValues)
                 self.outValue = self.actualLabel * np.log(inputValues) + (1-self.actualLabel) * (np.log(1-inputValues))
-                #print(self.outValue)
+                print('Prediction:', inputValues)
+                print('Actual:', self.actualLabel)
+                print('Loss:', self.outValue)
 
     def back(self):
-        print(self.name, 'BackProp')
+        #print(self.name, 'BackProp')
         if self.lastNode == True:
-            print("LastNodeBackprop")
+            #print("LastNodeBackprop")
             inputValues = self.ins[0].outValue
             slope = (self.actualLabel-inputValues) / (inputValues * (-inputValues+1))
             self.slopes = np.array([[slope]])
         if self.lastNode == False and self.layerIndex > 0:
-            print("Backprop")
-            print('OutCount', len(self.outs))
+            #print("Backprop")
+            #print('OutCount', len(self.outs))
             nextNodesSlopeTotal = None
             for i in range(len(self.outs)):
                 #print ("Index: ", i)
@@ -82,7 +85,18 @@ class Node:
             db = slopeAhead #get the da/db
             #print('db:', db)
             self.slopes = dw.T
-            print('Slopes: ',self.slopes)
+            #print('Slopes: ',self.slopes)
+            dwAverage = np.sum(dw.T, axis=0)/len(db)
+            dbAverage = np.sum(db)/len(db)
+            #print('dwAverage: ',dwAverage)
+            #print('dbAverage: ',dbAverage)
+            self.weights = self.weights - dwAverage*0.05
+            self.bias = self.bias - dbAverage*0.05
+
+            #DEBUG BY UN COMMENTING:
+            #print('self.weights : ',self.weights)
+            #print('self.bias : ',self.bias)
+            
 
     def setLastNode(self, lastNode):
         self.lastNode = lastNode
@@ -194,6 +208,8 @@ class LayerBuilder:
             lastNode.setLastNode(True)
 
 
+
+np.set_printoptions(precision=2)
 l_1 = Layer('L1')
 lb = LayerBuilder()
 lines=(
@@ -238,19 +254,19 @@ The way this code works is:
 '''
 lastLayerIndex = len(lb.layers)-1
 #each of the nodes below is actualy an INPUT. It has one value for each example
-lb.layers[0].nodes[0].outValue = np.array([1,1,1,1,1,1,1,1,1,-2])
-lb.layers[0].nodes[1].outValue = np.array([2,2,2,2,2,2,2,2,2,3])
-lb.layers[0].nodes[2].outValue = np.array([3,3,3,3,3,3,3,3,3,-4])
-actualLabel = np.array([1,1,1,1,1,1,1,1,1,0])
+lb.layers[0].nodes[0].outValue = np.array([1,1,1,1,2,9,9,8,8,9])
+lb.layers[0].nodes[1].outValue = np.array([1,2,1,2,1,9,8,9,9,8])
+lb.layers[0].nodes[2].outValue = np.array([1,1,2,2,1,8,9,7,9,7])
+actualLabel = np.array([1,1,1,1,1,0,0,0,0,0])
 lb.layers[len(lb.layers)-1].nodes[0].actualLabel = actualLabel
 
 lb.layers[0].initializeWeights()
 
 
 #For each epoch
-
-lb.layers[0].fwd()
-lb.layers[lastLayerIndex].back()
+for i in range(5):
+    lb.layers[0].fwd()
+    lb.layers[lastLayerIndex].back()
 
 
 
