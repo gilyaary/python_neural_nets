@@ -24,8 +24,11 @@ class Node:
 
     def initializeWeights(self):
         inputCount = len(self.ins)
-        self.weights = np.random.rand(inputCount)
-        self.bias = np.random.rand()
+
+        self.weights = np.repeat(0.1,inputCount)
+        self.bias = 0.1
+        #self.weights = np.random.rand(inputCount)
+        #self.bias = np.random.rand()
 
     def fwd(self):
         #print(self.name, 'Forward')
@@ -53,12 +56,13 @@ class Node:
                 print('Loss:', self.outValue)
 
     def back(self):
-        #print(self.name, 'BackProp')
+        print(self.name, 'BackProp')
         if self.lastNode == True:
             #print("LastNodeBackprop")
             inputValues = self.ins[0].outValue
             slope = (self.actualLabel-inputValues) / (inputValues * (-inputValues+1))
-            self.slopes = np.array([[slope]])
+            self.slopes = np.array([slope]).T
+            #print("LastNodeBackpropSlopes: ", self.slopes)
         if self.lastNode == False and self.layerIndex > 0:
             #print("Backprop")
             #print('OutCount', len(self.outs))
@@ -67,9 +71,9 @@ class Node:
                 #print ("Index: ", i)
                 out = self.outs[i]
                 weightIndex = self.outsWeightIndexes[i]
+                #print('out.slopes', out.slopes)
                 if nextNodesSlopeTotal == None:
-                    nextNodesSlopeTotal = out.slopes[:,weightIndex]
-                    #print('nextNodesSlopeTotal', nextNodesSlopeTotal)
+                    nextNodesSlopeTotal = out.slopes[:,weightIndex]                    
                 else:
                     nextNodesSlopeTotal = nextNodesSlopeTotal + out.slopes[:,weightIndex]
             #print('nextNodesSlopeTotal', nextNodesSlopeTotal)
@@ -77,22 +81,33 @@ class Node:
             activationGradient = (expZ/(1+np.square(expZ))) #this is da/dz
             #print('activationGradient:', activationGradient)
             slopeAhead = activationGradient * nextNodesSlopeTotal
-            #print('slopeAhead:', slopeAhead)
+            #print('nextNodesSlopeTotal: ', nextNodesSlopeTotal)
+            #print('activationGradient: ', activationGradient)
+            print('slopeAhead:', slopeAhead)
             slopeAheadTiled = np.tile(slopeAhead, (len(self.weights),1))
             #print('slopeAheadTiled:', slopeAheadTiled)
             dw =  slopeAheadTiled * self.inputMatrix #Multiply by the input X to get da/dw = da/dz * dz/dw
-            #print('dw', dw)
+            print('dw', dw)
             db = slopeAhead #get the da/db
             #print('db:', db)
             self.slopes = dw.T
             #print('Slopes: ',self.slopes)
             dwAverage = np.sum(dw.T, axis=0)/len(db)
             dbAverage = np.sum(db)/len(db)
+            #print('db:', db)
             #print('dwAverage: ',dwAverage)
             #print('dbAverage: ',dbAverage)
-            self.weights = self.weights - dwAverage*0.05
-            self.bias = self.bias - dbAverage*0.05
+            
+            self.weights = self.weights + dwAverage * 0.1
+            self.bias = self.bias + dbAverage * 0.1
 
+            '''
+            for i in range(0,10):
+                #print('dw[i]', dw[:,i])
+                self.weights = self.weights - dw[:,i]*0.1
+                self.bias = self.bias - db[i]*0.1
+            '''
+            
             #DEBUG BY UN COMMENTING:
             #print('self.weights : ',self.weights)
             #print('self.bias : ',self.bias)
@@ -264,7 +279,7 @@ lb.layers[0].initializeWeights()
 
 
 #For each epoch
-for i in range(5):
+for i in range(1000):
     lb.layers[0].fwd()
     lb.layers[lastLayerIndex].back()
 
