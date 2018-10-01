@@ -8,6 +8,7 @@ class Node:
         self.layerIndex = layerIndex;
         self.ins = []
         self.outs = []
+        self.outsWeightIndexes = []
         #We have weights for inputs. One for each in edge 
         self.weights = []
         self.bias = 0.1
@@ -16,6 +17,9 @@ class Node:
         #we use the name slopes to desribe a gradient. One slope per input
         self.slopes = []
         self.activationFunction = SigmoidActivation()
+        self.lastNode = False
+        self.actualLabel = []
+        self.z = 0
 
     def initializeWeights(self):
         inputCount = len(self.ins)
@@ -24,7 +28,7 @@ class Node:
 
     def fwd(self):
         print(self.name, 'Forward')
-        if self.layerIndex > 0:
+        if self.layerIndex > 0 and not self.lastNode:
             inputCount = len(self.ins)
             inputMatrix = np.zeros(( inputCount, len(self.ins[0].outValue) ))
             i = 0
@@ -33,15 +37,55 @@ class Node:
                 inputMatrix[i] = input.outValue
                 i = i+1
             #print(inputMatrix)
-            z = np.dot(inputMatrix.T, self.weights)
+            self.z = np.dot(inputMatrix.T, self.weights)
             #print(z)
-            z = z + self.bias
-            #print(z)
-            self.outValue = self.activationFunction.apply(z)
-            #print(self.outValue)
-            
+            self.z = self.z + self.bias
+            #print(self.z)
+            self.outValue = self.activationFunction.apply(self.z)
+        if self.lastNode == True:
+                #print(self.name, 'Is Last')
+                inputValues = self.ins[0].outValue
+                self.outValue = self.actualLabel * np.log(inputValues) + (1-self.actualLabel) * (np.log(1-inputValues))
+                #print(self.outValue)
+
     def back(self):
         print(self.name, 'BackProp')
+        if self.lastNode == True:
+            print("LastNodeBackprop")
+            inputValues = self.ins[0].outValue
+            slope = (self.actualLabel-inputValues) / (inputValues * (-inputValues+1))
+            self.slopes = np.array([[slope]])
+        else:
+            print("Backprop")
+            nextNodesSlopeTotal = None
+            for i in range(len(self.outs)):
+                print ("Index: ", i)
+                out = self.outs[i]
+                weightIndex = self.outsWeightIndexes[i]
+                if nextNodesSlopeTotal == None:
+                    nextNodesSlopeTotal = out.slopes[:,weightIndex]
+                    #print('nextNodesSlopeTotal', nextNodesSlopeTotal)
+                else:
+                    nextNodesSlopeTotal = nextNodesSlopeTotal + out.slopes[:,weightIndex]
+            print('nextNodesSlopeTotal', nextNodesSlopeTotal)
+                
+            activationGradient = (1/(1+np.exp(-self.z))) 
+            zTile = np.tile(self.z, (len(self.weights),1))
+            zTileTrans = zTile.T
+            #print('ztileTrans:', zTileTrans)
+            dw = [1 / (1+np.exp(-zTileTrans))] * self.weights
+            db = [1 / (1+np.exp(-self.z))]
+            #print(db)
+            db = (db * nextNodesSlopeTotal)
+            nextNodesSlopeTotalTrans = (np.tile(nextNodesSlopeTotal, (len(self.weights),1)).T)
+            #print('dw', dw)
+            dw = (dw * nextNodesSlopeTotalTrans)
+            #print(dw)
+            self.slopes = dw
+            print('Slopes: ',self.slopes)
+
+    def setLastNode(self, lastNode):
+        self.lastNode = lastNode
         
 class SigmoidActivation:
     def apply(self, z):
@@ -142,10 +186,12 @@ class LayerBuilder:
 
                 #Now we know that this relation is new so we add it to both nodes
                 node1.outs.append(node2)
+                node1.outsWeightIndexes.append(len(node2.ins)) # this is used to know the weight index of the next node we connect to
                 node2.ins.append(node1)
-
-def loss(actualLabel, predictedLabel):
-    return actualLabel * np.log(predictedLabel) + (1-actualLabel) * (np.log(1-predictedLabel))  
+        #End of For Loop
+        lastLayer = self.layers[len(self.layers)-1]
+        for lastNode in lastLayer.nodes:
+            lastNode.setLastNode(True)
 
 
 l_1 = Layer('L1')
@@ -158,7 +204,8 @@ lines=(
     'Input2->Node_1_2',
     'Input3->Node_1_2',
     'Node_1_1->Node_2_1',
-    'Node_1_2->Node_2_1'
+    'Node_1_2->Node_2_1',
+    'Node_2_1->Node_3_1'
     )
 lb.build(lines)
 #print(lb.layers)
@@ -194,17 +241,14 @@ lastLayerIndex = len(lb.layers)-1
 lb.layers[0].nodes[0].outValue = np.array([1,1,1,1,1,1,1,1,1,-2])
 lb.layers[0].nodes[1].outValue = np.array([2,2,2,2,2,2,2,2,2,3])
 lb.layers[0].nodes[2].outValue = np.array([3,3,3,3,3,3,3,3,3,-4])
-desiredLabel = np.array([1,1,1,1,1,1,1,1,1,0])
+actualLabel = np.array([1,1,1,1,1,1,1,1,1,0])
+lb.layers[len(lb.layers)-1].nodes[0].actualLabel = actualLabel
 
 lb.layers[0].initializeWeights()
 
 
 #For each epoch
 lb.layers[0].fwd()
-output = lb.layers[lastLayerIndex].nodes[0].outValue
-loss = loss(desiredLabel, output)
-print('last hidden OutValue', output)
-print('Loss', loss)
 lb.layers[lastLayerIndex].back()
 
 
