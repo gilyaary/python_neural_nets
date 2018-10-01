@@ -20,6 +20,7 @@ class Node:
         self.lastNode = False
         self.actualLabel = []
         self.z = 0
+        self.inputMatrix = None
 
     def initializeWeights(self):
         inputCount = len(self.ins)
@@ -30,14 +31,14 @@ class Node:
         print(self.name, 'Forward')
         if self.layerIndex > 0 and not self.lastNode:
             inputCount = len(self.ins)
-            inputMatrix = np.zeros(( inputCount, len(self.ins[0].outValue) ))
+            self.inputMatrix = np.zeros(( inputCount, len(self.ins[0].outValue) ))
             i = 0
             for input in self.ins:
                 #print(input.outValue)
-                inputMatrix[i] = input.outValue
+                self.inputMatrix[i] = input.outValue
                 i = i+1
             #print(inputMatrix)
-            self.z = np.dot(inputMatrix.T, self.weights)
+            self.z = np.dot(self.inputMatrix.T, self.weights)
             #print(z)
             self.z = self.z + self.bias
             #print(self.z)
@@ -60,7 +61,7 @@ class Node:
             print('OutCount', len(self.outs))
             nextNodesSlopeTotal = None
             for i in range(len(self.outs)):
-                print ("Index: ", i)
+                #print ("Index: ", i)
                 out = self.outs[i]
                 weightIndex = self.outsWeightIndexes[i]
                 if nextNodesSlopeTotal == None:
@@ -69,22 +70,18 @@ class Node:
                 else:
                     nextNodesSlopeTotal = nextNodesSlopeTotal + out.slopes[:,weightIndex]
             #print('nextNodesSlopeTotal', nextNodesSlopeTotal)
-                
-            activationGradient = (1/(1+np.exp(-self.z))) #this is da/dz 
-            zTile = np.tile(self.z, (len(self.weights),1))
-            zTileTrans = zTile.T
-            #print('ztileTrans:', zTileTrans)
-            dw = (1 / (1+np.exp(-zTileTrans))) * self.weights #Multiply by the weights to get da/dw = da/dz * dz/dw
+            expZ = np.exp(-self.z);    
+            activationGradient = (expZ/(1+np.square(expZ))) #this is da/dz
+            #print('activationGradient:', activationGradient)
+            slopeAhead = activationGradient * nextNodesSlopeTotal
+            #print('slopeAhead:', slopeAhead)
+            slopeAheadTiled = np.tile(slopeAhead, (len(self.weights),1))
+            #print('slopeAheadTiled:', slopeAheadTiled)
+            dw =  slopeAheadTiled * self.inputMatrix #Multiply by the input X to get da/dw = da/dz * dz/dw
             #print('dw', dw)
-            #print('dw', dw)
-            db = [1 / (1+np.exp(-self.z))] #get the da/db
+            db = slopeAhead #get the da/db
             #print('db:', db)
-            db = (db * nextNodesSlopeTotal) #multiply by the gradient of the chain ahead
-            nextNodesSlopeTotalTrans = (np.tile(nextNodesSlopeTotal, (len(self.weights),1)).T)
-            #print('dw', dw)
-            dw = (dw * nextNodesSlopeTotalTrans)
-            #print(dw)
-            self.slopes = dw
+            self.slopes = dw.T
             print('Slopes: ',self.slopes)
 
     def setLastNode(self, lastNode):
@@ -251,6 +248,7 @@ lb.layers[0].initializeWeights()
 
 
 #For each epoch
+
 lb.layers[0].fwd()
 lb.layers[lastLayerIndex].back()
 
