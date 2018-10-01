@@ -21,14 +21,15 @@ class Node:
         self.actualLabel = []
         self.z = 0
         self.inputMatrix = None
+        self.printPrediction = False
 
     def initializeWeights(self):
         inputCount = len(self.ins)
 
         self.weights = np.repeat(0.1,inputCount)
         self.bias = 0.1
-        #self.weights = np.random.rand(inputCount)
-        #self.bias = np.random.rand()
+        self.weights = np.random.rand(inputCount)
+        self.bias = np.random.rand()
 
     def fwd(self):
         #print(self.name, 'Forward')
@@ -51,12 +52,13 @@ class Node:
                 inputValues = self.ins[0].outValue
                 #print('****** Result Input ****** : ', inputValues)
                 self.outValue = self.actualLabel * np.log(inputValues) + (1-self.actualLabel) * (np.log(1-inputValues))
-                print('Prediction:', inputValues)
-                print('Actual:', self.actualLabel)
-                print('Loss:', self.outValue)
+                if( self.printPrediction == True):
+                    print('Prediction:', inputValues)
+                    print('Actual:', self.actualLabel)
+                    print('Loss:', self.outValue)
 
     def back(self):
-        print(self.name, 'BackProp')
+        #print(self.name, 'BackProp')
         if self.lastNode == True:
             #print("LastNodeBackprop")
             inputValues = self.ins[0].outValue
@@ -83,11 +85,11 @@ class Node:
             slopeAhead = activationGradient * nextNodesSlopeTotal
             #print('nextNodesSlopeTotal: ', nextNodesSlopeTotal)
             #print('activationGradient: ', activationGradient)
-            print('slopeAhead:', slopeAhead)
+            #print('slopeAhead:', slopeAhead)
             slopeAheadTiled = np.tile(slopeAhead, (len(self.weights),1))
             #print('slopeAheadTiled:', slopeAheadTiled)
             dw =  slopeAheadTiled * self.inputMatrix #Multiply by the input X to get da/dw = da/dz * dz/dw
-            print('dw', dw)
+            #print('dw', dw)
             db = slopeAhead #get the da/db
             #print('db:', db)
             self.slopes = dw.T
@@ -98,8 +100,8 @@ class Node:
             #print('dwAverage: ',dwAverage)
             #print('dbAverage: ',dbAverage)
             
-            self.weights = self.weights + dwAverage * 0.1
-            self.bias = self.bias + dbAverage * 0.1
+            self.weights = self.weights + dwAverage * 0.2
+            self.bias = self.bias + dbAverage * 0.2
 
             '''
             for i in range(0,10):
@@ -269,22 +271,32 @@ The way this code works is:
 '''
 lastLayerIndex = len(lb.layers)-1
 #each of the nodes below is actualy an INPUT. It has one value for each example
-lb.layers[0].nodes[0].outValue = np.array([1,1,1,1,2,9,9,8,8,9])
-lb.layers[0].nodes[1].outValue = np.array([1,2,1,2,1,9,8,9,9,8])
-lb.layers[0].nodes[2].outValue = np.array([1,1,2,2,1,8,9,7,9,7])
-actualLabel = np.array([1,1,1,1,1,0,0,0,0,0])
+#lb.layers[0].nodes[0].outValue = np.array([1,1,1,1,2,9,9,8,8,9])
+#lb.layers[0].nodes[1].outValue = np.array([1,2,1,2,1,9,8,9,9,8])
+#lb.layers[0].nodes[2].outValue = np.array([1,1,2,2,1,8,9,7,9,7])
+lb.layers[0].nodes[0].outValue = np.array([1,1,2,0,2,9,9,8,8,9,20,22,0,1,50])
+lb.layers[0].nodes[1].outValue = np.array([1,2,1,2,1,9,8,9,9,8,1,3,1,2,2])
+lb.layers[0].nodes[2].outValue = np.array([9,8,9,8,7,1,2,3,2,1,18,25,2,3,50])
+actualLabel = np.array([1,1,1,1,1,0,0,0,0,0,1,1,0,0,1])
 lb.layers[len(lb.layers)-1].nodes[0].actualLabel = actualLabel
 
 lb.layers[0].initializeWeights()
 
 
 #For each epoch
-for i in range(1000):
+for i in range(2000):
     lb.layers[0].fwd()
     lb.layers[lastLayerIndex].back()
 
 
-
+#PREDICT (Test Data with 2 rows)
+lb.layers[0].nodes[0].outValue = np.array([9,1,17,0,45])
+lb.layers[0].nodes[1].outValue = np.array([9,1,2,0,0])
+lb.layers[0].nodes[2].outValue = np.array([2,12, 26,0,60])
+actualLabel = np.array([0,1,1,0,1])
+lb.layers[len(lb.layers)-1].nodes[0].printPrediction = True
+lb.layers[len(lb.layers)-1].nodes[0].actualLabel = actualLabel
+lb.layers[0].fwd()
 '''
 Derivatives:
 
