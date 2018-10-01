@@ -69,14 +69,14 @@ class Node:
                     nextNodesSlopeTotal = nextNodesSlopeTotal + out.slopes[:,weightIndex]
             print('nextNodesSlopeTotal', nextNodesSlopeTotal)
                 
-            activationGradient = (1/(1+np.exp(-self.z))) 
+            activationGradient = (1/(1+np.exp(-self.z))) #this is da/dz 
             zTile = np.tile(self.z, (len(self.weights),1))
             zTileTrans = zTile.T
             #print('ztileTrans:', zTileTrans)
-            dw = [1 / (1+np.exp(-zTileTrans))] * self.weights
-            db = [1 / (1+np.exp(-self.z))]
+            dw = [1 / (1+np.exp(-zTileTrans))] * self.weights #Multiply by the weights to get da/dw = da/dz * dz/dw
+            db = [1 / (1+np.exp(-self.z))] #get the da/db
             #print(db)
-            db = (db * nextNodesSlopeTotal)
+            db = (db * nextNodesSlopeTotal) #multiply by the gradient of the chain ahead
             nextNodesSlopeTotalTrans = (np.tile(nextNodesSlopeTotal, (len(self.weights),1)).T)
             #print('dw', dw)
             dw = (dw * nextNodesSlopeTotalTrans)
