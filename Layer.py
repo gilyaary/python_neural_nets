@@ -55,8 +55,9 @@ class Node:
             inputValues = self.ins[0].outValue
             slope = (self.actualLabel-inputValues) / (inputValues * (-inputValues+1))
             self.slopes = np.array([[slope]])
-        else:
+        if self.lastNode == False and self.layerIndex > 0:
             print("Backprop")
+            print('OutCount', len(self.outs))
             nextNodesSlopeTotal = None
             for i in range(len(self.outs)):
                 print ("Index: ", i)
@@ -67,15 +68,17 @@ class Node:
                     #print('nextNodesSlopeTotal', nextNodesSlopeTotal)
                 else:
                     nextNodesSlopeTotal = nextNodesSlopeTotal + out.slopes[:,weightIndex]
-            print('nextNodesSlopeTotal', nextNodesSlopeTotal)
+            #print('nextNodesSlopeTotal', nextNodesSlopeTotal)
                 
             activationGradient = (1/(1+np.exp(-self.z))) #this is da/dz 
             zTile = np.tile(self.z, (len(self.weights),1))
             zTileTrans = zTile.T
             #print('ztileTrans:', zTileTrans)
-            dw = [1 / (1+np.exp(-zTileTrans))] * self.weights #Multiply by the weights to get da/dw = da/dz * dz/dw
+            dw = (1 / (1+np.exp(-zTileTrans))) * self.weights #Multiply by the weights to get da/dw = da/dz * dz/dw
+            #print('dw', dw)
+            #print('dw', dw)
             db = [1 / (1+np.exp(-self.z))] #get the da/db
-            #print(db)
+            #print('db:', db)
             db = (db * nextNodesSlopeTotal) #multiply by the gradient of the chain ahead
             nextNodesSlopeTotalTrans = (np.tile(nextNodesSlopeTotal, (len(self.weights),1)).T)
             #print('dw', dw)
