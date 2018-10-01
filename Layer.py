@@ -10,28 +10,35 @@ class Node:
         self.outs = []
         #We have weights for inputs. One for each in edge 
         self.weights = []
+        self.bias = 0.1
         #the activation of the neuralNode
         self.outValue = []
         #we use the name slopes to desribe a gradient. One slope per input
         self.slopes = []
         self.activationFunction = SigmoidActivation()
+
+    def initializeWeights(self):
+        inputCount = len(self.ins)
+        self.weights = np.random.rand(inputCount)
+        self.bias = np.random.rand()
+
     def fwd(self):
-        
         print(self.name, 'Forward')
         if self.layerIndex > 0:
             inputCount = len(self.ins)
-            self.weights = np.random.rand(inputCount)
             inputMatrix = np.zeros(( inputCount, len(self.ins[0].outValue) ))
             i = 0
             for input in self.ins:
                 #print(input.outValue)
                 inputMatrix[i] = input.outValue
                 i = i+1
-            print(inputMatrix)
+            #print(inputMatrix)
             z = np.dot(inputMatrix.T, self.weights)
-            print(z)
+            #print(z)
+            z = z + self.bias
+            #print(z)
             self.outValue = self.activationFunction.apply(z)
-            print(self.outValue)
+            #print(self.outValue)
             
     def back(self):
         print(self.name, 'BackProp')
@@ -68,6 +75,12 @@ class Layer:
         self.name = name
         #print(name)
 
+    def initializeWeights(self):
+        for node in self.nodes:
+            node.initializeWeights()
+        if(self.nextLayer):
+            self.nextLayer.initializeWeights()
+    
     def fwd(self):
         for node in self.nodes:
             node.fwd()
@@ -130,7 +143,11 @@ class LayerBuilder:
                 #Now we know that this relation is new so we add it to both nodes
                 node1.outs.append(node2)
                 node2.ins.append(node1)
-    
+
+def loss(actualLabel, predictedLabel):
+    return actualLabel * np.log(predictedLabel) + (1-actualLabel) * (np.log(1-predictedLabel))  
+
+
 l_1 = Layer('L1')
 lb = LayerBuilder()
 lines=(
@@ -172,11 +189,27 @@ The way this code works is:
        2. Calls the next layer (fwd) or previous layer (back)
     
 '''
-lb.layers[0].nodes[0].outValue = np.array([1,1,1,1,1,1,1,1,1,1])
-lb.layers[0].nodes[1].outValue = np.array([2,2,2,2,2,2,2,2,2,2])
-lb.layers[0].nodes[2].outValue = np.array([3,3,3,3,3,3,3,3,3,3])
-
-
-lb.layers[0].fwd()
 lastLayerIndex = len(lb.layers)-1
+#each of the nodes below is actualy an INPUT. It has one value for each example
+lb.layers[0].nodes[0].outValue = np.array([1,1,1,1,1,1,1,1,1,-2])
+lb.layers[0].nodes[1].outValue = np.array([2,2,2,2,2,2,2,2,2,3])
+lb.layers[0].nodes[2].outValue = np.array([3,3,3,3,3,3,3,3,3,-4])
+desiredLabel = np.array([1,1,1,1,1,1,1,1,1,0])
+
+lb.layers[0].initializeWeights()
+
+
+#For each epoch
+lb.layers[0].fwd()
+output = lb.layers[lastLayerIndex].nodes[0].outValue
+loss = loss(desiredLabel, output)
+print('last hidden OutValue', output)
+print('Loss', loss)
 lb.layers[lastLayerIndex].back()
+
+
+
+'''
+Derivatives:
+
+'''
