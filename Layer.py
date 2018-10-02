@@ -68,13 +68,13 @@ class Node:
         if self.lastNode == False and self.layerIndex > 0:
             #print("Backprop")
             #print('OutCount', len(self.outs))
-            nextNodesSlopeTotal = None
+            nextNodesSlopeTotal = []
             for i in range(len(self.outs)):
                 #print ("Index: ", i)
                 out = self.outs[i]
                 weightIndex = self.outsWeightIndexes[i]
                 #print('out.slopes', out.slopes)
-                if nextNodesSlopeTotal == None:
+                if len(nextNodesSlopeTotal) == 0:
                     nextNodesSlopeTotal = out.slopes[:,weightIndex]                    
                 else:
                     nextNodesSlopeTotal = nextNodesSlopeTotal + out.slopes[:,weightIndex]
@@ -236,10 +236,42 @@ lines=(
     'Input1->Node_1_2',
     'Input2->Node_1_2',
     'Input3->Node_1_2',
+    'Input1->Node_1_3',
+    'Input2->Node_1_3',
+    'Input3->Node_1_3',
+
+    'Node_1_1->Node_2_1',
+    'Node_1_2->Node_2_1',
+    'Node_1_3->Node_2_1',
+    'Node_1_1->Node_2_2',
+    'Node_1_2->Node_2_2',
+    'Node_1_3->Node_2_2',
+    'Node_1_1->Node_2_3',
+    'Node_1_2->Node_2_3',
+    'Node_1_3->Node_2_3',
+
+    'Node_2_1->Node_3_1',
+    'Node_2_2->Node_3_1',
+    'Node_2_3->Node_3_1',
+
+    'Node_3_1->Node_4_1'
+    )
+
+'''
+lines=(
+    'Input1->Node_1_1',
+    'Input2->Node_1_1',
+    'Input3->Node_1_1',
+    'Input1->Node_1_2',
+    'Input2->Node_1_2',
+    'Input3->Node_1_2',
     'Node_1_1->Node_2_1',
     'Node_1_2->Node_2_1',
     'Node_2_1->Node_3_1'
     )
+
+'''
+
 lb.build(lines)
 #print(lb.layers)
 #print(lb.nodeMap)
@@ -284,7 +316,7 @@ lb.layers[0].initializeWeights()
 
 
 #For each epoch
-for i in range(2000):
+for i in range(5000):
     lb.layers[0].fwd()
     lb.layers[lastLayerIndex].back()
 
