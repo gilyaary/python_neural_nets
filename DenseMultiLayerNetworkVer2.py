@@ -97,8 +97,8 @@ class Layer:
             nodes_average_bias_gradient = sum(nodes_dz)/np.shape(self.X)[0]
             #print('nodes_average_gradient', nodes_average_gradient)
             #print('nodes_average_bias_gradient', nodes_average_bias_gradient)
-            self.b[i] = self.b[i] + LR * nodes_average_bias_gradient   
-            self.W[i] = self.W[i] + LR * nodes_average_gradient   
+            self.b[i] = self.b[i] + self.LR * nodes_average_bias_gradient   
+            self.W[i] = self.W[i] + self.LR * nodes_average_gradient   
             
             #print('nodes_gradient', nodes_gradient)
             if i == 0:
@@ -111,6 +111,7 @@ class Layer:
         return sum_of_all_nodes_gradients
         
 
+#LR is the Learning Rate
 class LayerManager:
     def __init__(self, inputCount, activation, loss, LR, *nodeCounts):
         self.activation = activation
@@ -145,40 +146,46 @@ class LayerManager:
         print ('Y', Y)
         print ('YY', self.YY)
         
+class DenseMultiLayerTest:
         
-#print(L1.weights)
-X = np.array([
-    [5,5,5,5,5],
-    [1,2,3,4,5],
-    [1,2,3,4,5],
-    [1,2,3,4,5],
-    [1,2,3,3,4],
-    [1,2,3,4,4],
-    [1,2,3,4,5],
-    [1,2,3,4,5],
-    [1,1,3,1,1],
-    [1,1,1,1,1]
-])
-Y = np.array([
-    [0],
-    [1],
-    [1],
-    [1],
-    [0],
-    [1],
-    [1],
-    [1],
-    [0],
-    [1]
-])
+    def test(self):
+        #print(L1.weights)
+        X = np.array([
+            [5,5,5,5,5],
+            [1,2,3,4,5],
+            [1,2,3,4,5],
+            [1,2,3,4,5],
+            [1,2,3,3,4],
+            [1,2,3,4,4],
+            [1,2,3,4,5],
+            [1,2,3,4,5],
+            [1,1,3,1,1],
+            [1,1,1,1,1]
+        ])
+        Y = np.array([
+            [0],
+            [1],
+            [1],
+            [1],
+            [0],
+            [1],
+            [1],
+            [1],
+            [0],
+            [1]
+        ])
 
-'sigmoid works better even with layers like 3,3,3,3,1'
-LR = 5
-lm = LayerManager(5, Sigmoid(), SquaredErrLoss(), LR, 3,1)
-#LR = 0.0001
-#lm = LayerManager(5, ReLU(), SquaredErrLoss(), LR, 3, 3, 1)
-for i in range (1, 500):
-    lm.fwd(X)
-    lm.back(Y)
-lm.predict(Y)
-#Note: we must use a slower learning rate for ReLU
+        'sigmoid works better even with layers like 3,3,3,3,1'
+        LR = 5
+        lm = LayerManager(5, Sigmoid(), SquaredErrLoss(), LR, 3,1)
+        #LR = 0.0001
+        #lm = LayerManager(5, ReLU(), SquaredErrLoss(), LR, 3, 3, 1)
+        for i in range (1, 500):
+            lm.fwd(X)
+            lm.back(Y)
+        lm.predict(Y)
+        #Note: we must use a slower learning rate for ReLU
+
+#test = DenseMultiLayerTest()
+#test.test()
+
