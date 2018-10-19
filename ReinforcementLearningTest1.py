@@ -40,7 +40,7 @@ barrier_locations = np.array([
 #Therefor we start off with an empty state-action to Value map (Dictionary)
 stateToActionValuesMap = {}
 stateActionHistory = []#this is an array or lisnked list of all the state actions TAKEN
-
+np.set_printoptions(precision=2)
 
 #scale so that the sum of all action values is 1
 def scale(stateActionsValues):
@@ -50,16 +50,27 @@ def scale(stateActionsValues):
     for key in stateActionsValues:
         stateActionsValues[key] = 1 * stateActionsValues[key]/sum_of_values
     
-def chooseAction(stateActionsValues):
+def chooseAction(stateActionsValues, followBestValue=False):
     rand = random.random()
     start_value_for_key = 0
-    for key in stateActionsValues:
-        value = stateActionsValues[key]
-        #print('Key: ', key, ' Value: ', value)
-        end_value_for_key = start_value_for_key + value
-        if( rand >= start_value_for_key and rand <= end_value_for_key):
-            return key
-        start_value_for_key = end_value_for_key
+    if followBestValue:
+        bestValue = None
+        bestValueKey = None
+        for key in stateActionsValues:
+            value = stateActionsValues[key]
+            if bestValue == None or value > bestValue:
+                bestValue = value
+                bestValueKey = key
+        return bestValueKey
+            
+    else:
+        for key in stateActionsValues:
+            value = stateActionsValues[key]
+            #print('Key: ', key, ' Value: ', value)
+            end_value_for_key = start_value_for_key + value
+            if( rand >= start_value_for_key and rand <= end_value_for_key):
+                return key
+            start_value_for_key = end_value_for_key
 
 def hitBarrier(next_position):
     #check against barrier_locations
@@ -85,10 +96,10 @@ def calculateRewardAndAdjustStateActionValues():
          scale(stateActionsValues)
          #print (currentStateActionValue)
          
-    print(historyLength)
+    #print(historyLength)
     
          
-def move(from_position):
+def move(from_position, followBestValue=False):
     #Step 1: Find the Value associated with each available Action in the current State. If no such Value create a default one for each action
     #print(from_position)
     key = np.array2string(from_position)
@@ -108,7 +119,7 @@ def move(from_position):
     else:
         #print('Key Found: ', key)
         dummy = 1
-    chosen_action = chooseAction(stateActionsValues)
+    chosen_action = chooseAction(stateActionsValues, followBestValue)
     #print('availavle actions and Values: ', stateActionsValues)
     #we now proceed to calculate the reward for any actions in this chain.
     next_position= from_position.copy()
@@ -148,16 +159,21 @@ def move(from_position):
 #for i in range(0,5):
 #    for j in range (0,5):
 #        move(np.array([i,j]))
-def epoch():
+def epoch(followBestValue=False):
     position = np.array([0,0])
-    for i in range(0,1000):
-        position = move(position)
+    for i in range(0,500):
+        position = move(position,followBestValue=False)
         #print(position)
         if(position[0] == 4 and position[1] == 4):
             calculateRewardAndAdjustStateActionValues()
             break
 
-for j in range(0,200) :
-    #print("epoch: ", j)
-    epoch()
-    stateActionHistory.clear()
+for x in range (1,10):
+    for j in range(0,10000) :
+        #print("epoch: ", j)
+        epoch(followBestValue=False)
+        historyLength = len(stateActionHistory)
+        #print(historyLength)
+        stateActionHistory.clear()
+    epoch(followBestValue=True)
+    print(historyLength)
