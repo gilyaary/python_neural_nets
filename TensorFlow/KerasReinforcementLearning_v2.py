@@ -27,7 +27,7 @@ class Game:
                 done = False
                 break
 
-        reward = 0
+        reward = -0.01
         if done == False and played == True:
             #First check if we won. If so return a reward of 10 points
             player_wins = self.check_for_win(1)
@@ -87,7 +87,7 @@ class DQNAgent:
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
-        self.learning_rate = 0.001
+        self.learning_rate = 0.01
         self.model = self._build_model()
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
@@ -116,7 +116,7 @@ for episode_count in range(number_of_episodes):
     game.reset()
     game.opponent_play()
     agent.clear_memory()
-    for step_number in range(100):
+    for step_number in range(10):
         current_state = game.get_current_state()
         action_q_values = agent.act(current_state)
 
@@ -147,8 +147,8 @@ for episode_count in range(number_of_episodes):
         print('average_reward', total_rewards/(episode_count+1))     
 
     #Now take the experiences from memory and adjust weights
-    sample = random.sample(agent.memory, 2)
-    #sample = agent.memory
+    #sample = random.sample(agent.memory, 2)
+    sample = agent.memory
     
     
     for current_state, selected_action, reward, next_state, done in sample:
