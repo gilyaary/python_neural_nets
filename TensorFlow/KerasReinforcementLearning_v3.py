@@ -9,73 +9,7 @@ import collections
 from collections import deque
 import random
 
-class Game:
-    def __init__(self):
-        self.reset()
-    def reset(self):
-        self.state = np.array(np.zeros([64]))
-    def play (self, action):
-        played = False
-        if self.state[action] == 0:
-            self.state[action] = 1
-            played = True
-        else:
-            played = False
-        done = True
-        for cubicle_state in self.state:
-            if cubicle_state == 0:
-                done = False
-                break
 
-        reward = -0.01
-        if done == False and played == True:
-            #First check if we won. If so return a reward of 10 points
-            player_wins = self.check_for_win(1)
-            #If not won then play the opponent and check if he won. If he did return -10
-            if player_wins == True:
-                #print ('Player Wins')
-                reward = 10
-                done = True
-            else:
-                self.opponent_play()
-                opponent_wins = self.check_for_win(-1)
-                if opponent_wins == True:
-                    #print ('Opponent Wins')
-                    reward = -10
-                    done = True
-                        
-        return self.state, reward, done
-
-    def get_current_state(self):
-        return self.state
-
-    def opponent_play(self):
-        for i in range (100):
-            opponent_action = np.random.randint(0, 9)
-            if self.state[opponent_action] == 0:
-                #print ('opponent_action', opponent_action)
-                self.state[opponent_action] = -1
-                break
-        return self.state
-
-    def check_for_win(self, value):
-        if self.state[0] == value and self.state[1] == value and self.state[2] == value:
-            return True
-        if self.state[3] == value and self.state[4] == value and self.state[5] == value:
-            return True
-        if self.state[6] == value and self.state[7] == value and self.state[8] == value:
-            return True
-        if self.state[0] == value and self.state[3] == value and self.state[6] == value:
-            return True
-        if self.state[1] == value and self.state[4] == value and self.state[7] == value:
-            return True
-        if self.state[2] == value and self.state[5] == value and self.state[8] == value:
-            return True
-        if self.state[0] == value and self.state[4] == value and self.state[8] == value:
-            return True
-        if self.state[2] == value and self.state[4] == value and self.state[6] == value:
-            return True
-        return False
 
 # Deep Q-learning Agent
 class DQNAgent:
@@ -110,7 +44,7 @@ class DQNAgent:
         self.memory = deque(maxlen=2000)
 
 agent =  DQNAgent(64,8)
-game = Game()
+game = SheepAndWolfGame()
 number_of_episodes = 100000
 total_rewards = 0
 for episode_count in range(number_of_episodes):
