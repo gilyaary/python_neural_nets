@@ -8,7 +8,7 @@ import matplotlib.pylab as plt
 import collections
 from collections import deque
 import random
-from SheepAndWolfGame import *
+from SheepAndWolfGame_1 import *
 import time
 
 
