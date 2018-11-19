@@ -24,14 +24,14 @@ class DQNAgent:
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         #self.learning_rate = 0.001
-        self.learning_rate = 0.01
+        self.learning_rate = 0.001
         self.model = self._build_model()
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
-        model.add(Dense(self.state_size*2, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(self.state_size*2, activation='relu'))
-        model.add(Dense(self.action_size, activation='linear'))
+        model.add(Dense(self.state_size, input_dim=self.state_size, activation='relu'))
+        #model.add(Dense(self.state_size*2, activation='relu'))
+        model.add(Dense(self.action_size, activation='relu'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
     def act(self, current_state):
@@ -55,98 +55,115 @@ last_10_total_rewards = 0
 print('Stating Episodes')
 episode_count = 0
 last_10_episode_count = 0
+
+
+
+
+def get_action(step_number):
+    if step_number == 1:
+        return 1
+    if step_number == 2:
+        return 3
+    if step_number == 3:
+        return 5
+    if step_number == 4:
+        return 7
+
+    if step_number == 5:
+        return 0
+    if step_number == 6:
+        return 2
+    if step_number == 7:
+        return 4
+    if step_number == 8:
+        return 6
+
+    if step_number == 9:
+        return 1
+    if step_number == 10:
+        return 3
+    if step_number == 11:
+        return 5
+    if step_number == 12:
+        return 7
+
+    if step_number == 13:
+        return 0
+    if step_number == 14:
+        return 2
+    if step_number == 15:
+        return 4
+    if step_number == 16:
+        return 6
+
+    if step_number == 17:
+        return 1
+    if step_number == 18:
+        return 3
+    if step_number == 19:
+        return 5
+    if step_number == 20:
+        return 7
+
+    if step_number == 21:
+        return 0
+    if step_number == 22:
+        return 2
+    if step_number == 23:
+        return 4
+    if step_number == 24:
+        return 6
+        
+number_of_episodes = 10
+
 while episode_count < number_of_episodes:
-    #print('Stating Episode', episode_count)
+    episode_count += 1
     game.reset()
     #game.opponent_play()
     agent.clear_memory()
     done = False
     step_number = 0
-    while step_number < 100:
+
+    last_reward = 0
+
+    while step_number < 24:
         step_number += 1
         current_state = game.get_current_state()
+        #print(np.reshape(current_state,(8,8)))
         action_q_values = agent.act(current_state)
-        #print('current_state',current_state)
-        #reduce the exploration and increase exploitation as time goes by
         if agent.epsilon > agent.epsilon_min:
             agent.epsilon *= agent.epsilon_decay
-
-        #agent.epsilon = 1
-
-        #There is an issue where the program gets into very long time stuck in here
-        #We should see if theree is a bug saying there are no valid moves for any move
-        valid_move = False
-        attempt = 0
-        while not valid_move:
-            attempt += 1
-            selected_action = np.argmax(action_q_values)
-            #generate some random action from time to time
-            if random.random() < agent.epsilon:
-                random.seed(random.random())
-                selected_action = random.randint(0, 7)
-            next_state, reward, done, valid_move = game.play(selected_action)
-            if done == True:
-                break            
-            #if attempt > 100:
-            #    print('selected_action', selected_action)
-
-        #calculate expected q and add experience to memory
-        #add the experience tuple. When done adjust gradient with the batch of experiences
+        selected_action = get_action(step_number)
+        next_state, reward, done, valid_move = game.play(selected_action, False)
+        #We MUST Move this line here !!!! Otherwise there is now state/action with any reward
         agent.add_to_memory(current_state, selected_action, reward, next_state, done)
-        current_state = next_state
-        if step_number > 95:
-            print('valid_move selected_action', selected_action)
-            print(np.reshape(game.state,(8,8)))
-            valid_move, sheep_current_location, sheep_next_location, sheep_index, direction = game.translate_sheep_action(selected_action)
-            print('sheep_current_location', sheep_current_location)
-            print('sheep_next_location', sheep_next_location)
-            game.sheep_position[sheep_index][0] = sheep_next_location[0]
-            game.sheep_position[sheep_index][1] = sheep_next_location[1]
-            game.set_state()
-            print(np.reshape(game.state,(8,8)))
-            
-            
         if done == True:
-            #print ('Episode Done')
-            #print (current_state)
-            break
+            last_reward = reward
+            print('Reward: ', reward)
+            break 
+        current_state = next_state
         
-    #print('Here')
-
-    if done == True:
-        episode_count += 1
-        last_10_episode_count += 1
-        if episode_count%100 == 0:
-            print('average_reward', total_rewards/episode_count)
-            print('last 10 average_reward', last_10_total_rewards/100)
-            last_10_episode_count = 0
-            last_10_total_rewards = 0
-    else:
-        print ('not done')
-        #print(np.reshape(game.state,(8,8)))
-        continue
-
-
-    #print('adjust weights')   
-    #Now take the experiences from memory and adjust weights
-    sample = random.sample(agent.memory, 4)
-    #sample = agent.memory
-    
-    
+    #sample = random.sample(agent.memory, 4)
+    sample = agent.memory
     for current_state, selected_action, reward, next_state, done in sample:
-        
+        #if reward > 0:
+            #print('>>>>>>>>>>>>>>>>', np.reshape(current_state,(8,8)))
         #predict for next state
         next_state_actions_values = agent.model.predict(np.array([next_state]), )
-        target = reward
-        total_rewards += reward
-        last_10_total_rewards += reward
-        if not done:
-            target = reward + agent.gamma * np.amax(next_state_actions_values[0])
-
+        #print('next_state_actions_values', next_state_actions_values)
+        target = last_reward
+        #total_rewards += reward
+        #target = reward + agent.gamma * np.amax(next_state_actions_values[0])
+        
         #predict for current state
         current_state_action_values = agent.model.predict(np.array([current_state]), )
+        #print('current_state_action_values[0]', current_state_action_values[0])
+        print('current_state_action_values[0][selected_action]', current_state_action_values[0][selected_action])
         current_state_action_values[0][selected_action] = target
+        print('current_state_action_values[0][selected_action]', current_state_action_values[0][selected_action])
+        print('current_state_action_values[0]', current_state_action_values[0])        
+        #print('target', target)
         agent.model.fit(np.array([current_state]), current_state_action_values, epochs=1, verbose=0)
-        #selected_action_value = current_state_action_values[selected_action]
+        
                 
         

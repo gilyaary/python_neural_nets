@@ -87,7 +87,7 @@ class SheepAndWolfGame:
             if not self.is_valid_move(up_left) and not self.is_valid_move(up_right) and not self.is_valid_move(down_left) and  not self.is_valid_move(down_right):
                 #print ('sheeps win')
                 #print(np.reshape(self.state,(8,8)))
-                return self.state, 10, True, valid_move
+                return self.state, 1, True, valid_move
             else:
                 #Attempt to move the wolf
                 n = 0
@@ -120,7 +120,7 @@ class SheepAndWolfGame:
                 if wolf_wins:
                     #print ('wolf wins')
                     #print(np.reshape(self.state,(8,8)))
-                    return self.state, -10, True, valid_move
+                    return self.state, -1, True, valid_move
                        
                         
         else:
@@ -135,7 +135,7 @@ class SheepAndWolfGame:
                     break
             if valid_move_exists == False:
                 #Sheep loses
-                return self.state, -0.1, True, False
+                return self.state, -1, True, False
                 
         '''
         if done == False and played == True:

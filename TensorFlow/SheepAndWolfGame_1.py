@@ -64,7 +64,7 @@ class SheepAndWolfGame:
     '''
     for the sheeps we have 8 actions, one for each sheep
     '''
-    def play (self, action):
+    def play (self, action, move_wolf):
         played = False
         done = True
         valid_move = False
@@ -91,27 +91,30 @@ class SheepAndWolfGame:
             else:
                 #Attempt to move the wolf
                 n = 0
-                while n <100:
-                    n += 1
-                    if n==99:
-                        print ("Endless Loop")
-                    
-                    up_down = np.random.randint(2)
-                    left_right = np.random.randint(2)
-                    row_index, col_index = self.wolf_position[0], self.wolf_position[1]
-                    if up_down == 0:
-                        row_index -= 1
-                    else:
-                        row_index += 1
-                    if left_right == 0:
-                        col_index -= 1
-                    else:
-                        col_index += 1
-                    if self.is_valid_move([row_index, col_index]):
-                        self.wolf_position[0] = row_index
-                        self.wolf_position[1] = col_index
-                        self.set_state()
-                        break
+                if move_wolf:
+                    while n <100:
+                        n += 1
+                        if n==99:
+                            print ("Endless Loop")
+                        
+                        up_down = np.random.randint(2)
+                        left_right = np.random.randint(2)
+                        row_index, col_index = self.wolf_position[0], self.wolf_position[1]
+                        if up_down == 0:
+                            row_index -= 1
+                        else:
+                            row_index += 1
+                        if left_right == 0:
+                            col_index -= 1
+                        else:
+                            col_index += 1
+                        if self.is_valid_move([row_index, col_index]):
+                            self.wolf_position[0] = row_index
+                            self.wolf_position[1] = col_index
+                            self.set_state()
+                            break
+
+        
                 wolf_wins = True
                 for one_sheep_position in self.sheep_position:
                     if one_sheep_position[0] < self.wolf_position[0]:
@@ -135,7 +138,7 @@ class SheepAndWolfGame:
                     break
             if valid_move_exists == False:
                 #Sheep loses
-                return self.state, -0.1, True, False
+                return self.state, -10, True, False
                 
         '''
         if done == False and played == True:

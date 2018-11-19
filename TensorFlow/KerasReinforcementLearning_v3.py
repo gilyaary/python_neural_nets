@@ -8,7 +8,7 @@ import matplotlib.pylab as plt
 import collections
 from collections import deque
 import random
-from SheepAndWolfGame import *
+from SheepAndWolfGame_1 import *
 import time
 
 
@@ -19,20 +19,30 @@ class DQNAgent:
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=2000)
-        self.gamma = 0.95    # discount rate
+        #self.gamma = 0.95    # discount rate
+        self.gamma = 1    # discount rate
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.epsilon_decay = 0.9999
         #self.learning_rate = 0.001
-        self.learning_rate = 0.01
+        self.learning_rate = 0.001
         self.model = self._build_model()
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
-        model.add(Dense(self.state_size*2, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(self.state_size*2, activation='relu'))
+        #model.add(Dense(self.state_size, input_dim=self.state_size, activation='relu'))
+        #model.add(Dense(64, activation='relu'))
+        #model.add(Dense(64, activation='relu'))
+        #model.add(Dense(32, activation='relu'))
+        #model.add(Dense(self.action_size, activation='linear'))
+        #model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
+        #model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
+
+        model.add(InputLayer(batch_input_shape=(1, self.state_size)))
+        model.add(Dense(128, activation='sigmoid'))
         model.add(Dense(self.action_size, activation='linear'))
-        model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
+        model.compile(loss='mse', optimizer='adam', metrics=['mae'])
+        
         return model
     def act(self, current_state):
         #print(current_state)
@@ -51,15 +61,24 @@ game = SheepAndWolfGame()
 print('creating Game')
 number_of_episodes = 100000
 total_rewards = 0
-last_10_total_rewards = 0
+last_100_rewards = 0
 print('Stating Episodes')
 episode_count = 0
-last_10_episode_count = 0
+last_X_total_rewards = 0
+last_X_episode_count = 0
+
 while episode_count < number_of_episodes:
+
+    if agent.epsilon > agent.epsilon_min:
+        agent.epsilon *= agent.epsilon_decay
+    
+    last_reward = 0
     #print('Stating Episode', episode_count)
     game.reset()
+
+    game.sheep_position = np.array([[5,1],[5,3],[5,5],[5,7]])
+    
     #game.opponent_play()
-    agent.clear_memory()
     done = False
     step_number = 0
     while step_number < 100:
@@ -68,8 +87,7 @@ while episode_count < number_of_episodes:
         action_q_values = agent.act(current_state)
         #print('current_state',current_state)
         #reduce the exploration and increase exploitation as time goes by
-        if agent.epsilon > agent.epsilon_min:
-            agent.epsilon *= agent.epsilon_decay
+        
 
         #agent.epsilon = 1
 
@@ -82,71 +100,80 @@ while episode_count < number_of_episodes:
             selected_action = np.argmax(action_q_values)
             #generate some random action from time to time
             if random.random() < agent.epsilon:
-                random.seed(random.random())
-                selected_action = random.randint(0, 7)
-            next_state, reward, done, valid_move = game.play(selected_action)
+                #random.seed(random.random())
+                selected_action = random.randrange(8)
+            next_state, reward, done, valid_move = game.play(selected_action, True)
+
+            #calculate expected q and add experience to memory
+            #add the experience tuple. When done adjust gradient with the batch of experiences
+            agent.add_to_memory(current_state, selected_action, reward, next_state, done)
+        
             if done == True:
+                last_reward = reward
+                if agent.epsilon < 0.001 and reward != 0:
+                    print ('current_reward', reward)
                 break            
             #if attempt > 100:
             #    print('selected_action', selected_action)
 
-        #calculate expected q and add experience to memory
-        #add the experience tuple. When done adjust gradient with the batch of experiences
-        agent.add_to_memory(current_state, selected_action, reward, next_state, done)
+        
         current_state = next_state
-        if step_number > 95:
-            print('valid_move selected_action', selected_action)
-            print(np.reshape(game.state,(8,8)))
-            valid_move, sheep_current_location, sheep_next_location, sheep_index, direction = game.translate_sheep_action(selected_action)
-            print('sheep_current_location', sheep_current_location)
-            print('sheep_next_location', sheep_next_location)
-            game.sheep_position[sheep_index][0] = sheep_next_location[0]
-            game.sheep_position[sheep_index][1] = sheep_next_location[1]
-            game.set_state()
-            print(np.reshape(game.state,(8,8)))
-            
-            
+
         if done == True:
             #print ('Episode Done')
             #print (current_state)
             break
         
-    #print('Here')
-
-    if done == True:
-        episode_count += 1
-        last_10_episode_count += 1
-        if episode_count%100 == 0:
-            print('average_reward', total_rewards/episode_count)
-            print('last 10 average_reward', last_10_total_rewards/100)
-            last_10_episode_count = 0
-            last_10_total_rewards = 0
-    else:
+    if done == False:
         print ('not done')
         #print(np.reshape(game.state,(8,8)))
         continue
+    else:
+        episode_count += 1
+        #for c_state, selected_action, reward, n_state, done in reversed(sample):
 
+    if done:
+    #things to think about:
+        #if there was no exploitation we would not have acted on knowledge and so the rewards may be decorrelated with the state
+        #so we can assume that at initial stages out rewards will not change much (converge)
+        #after some training and as exploitation gets underway (using the accumulated Q knowledge)
+        #we should see some gradually better rewards - because of acting on the knowledge of Q
+        #A test could be looking at actual Q values  and comparing to expected values
+        #Right now rewards seem to hover around 0.35
+        #Try to replace the Game with some hardcoded "Fake" Model
 
-    #print('adjust weights')   
-    #Now take the experiences from memory and adjust weights
-    sample = random.sample(agent.memory, 4)
-    #sample = agent.memory
-    
-    
-    for current_state, selected_action, reward, next_state, done in sample:
-        
-        #predict for next state
-        next_state_actions_values = agent.model.predict(np.array([next_state]), )
-        target = reward
-        total_rewards += reward
-        last_10_total_rewards += reward
-        if not done:
+        ''' 
+        for c_state, selected_action, reward, n_state, done in agent.memory:
+            if reward != 0:
+                total_rewards += reward
+                last_100_rewards += reward
+        '''
+
+        #Now take the experiences from memory and adjust weights
+        #sample = random.sample(agent.memory, 4)
+        sample = agent.memory
+                        
+        for c_state, selected_action, reward, n_state, done in reversed(sample):
+            #predict for next state
+            next_state_actions_values = agent.model.predict(np.array([n_state]), )
+            #target = reward
             target = reward + agent.gamma * np.amax(next_state_actions_values[0])
+            #target = last_reward
+            
+            #print (target)
+                        
+            #predict for current state
+            c_state_action_values = agent.model.predict(np.array([c_state]), )
+            c_state_action_values[0][selected_action] = target
+            agent.model.fit(np.array([c_state]), c_state_action_values, epochs=1, verbose=0)
+            #print('current_state_action_values', c_state_action_values)
+            #selected_action_value = current_state_action_values[selected_action]
 
-        #predict for current state
-        current_state_action_values = agent.model.predict(np.array([current_state]), )
-        current_state_action_values[0][selected_action] = target
-        agent.model.fit(np.array([current_state]), current_state_action_values, epochs=1, verbose=0)
-        #selected_action_value = current_state_action_values[selected_action]
-                
-        
+        total_rewards += last_reward
+        last_100_rewards += last_reward
+            
+        if episode_count % 100 == 0:
+            print('average_reward', total_rewards/(episode_count))
+            print('average_100_reward', last_100_rewards/100)
+            last_100_rewards = 0
+        agent.clear_memory()
