@@ -16,6 +16,9 @@ import time
 #There are 100 states corresponding to 100 places in a 10*10 grid
 #some of these cells are blocked, some conain traps, some have bonuses. Getting to a spot in the edge gets you a big reward
 
+STATES_COUNT = 16
+ROW_COUNT = 4
+
 class SimpleGameTest:
 
     def __init__(self):
@@ -25,55 +28,60 @@ class SimpleGameTest:
         return True
 
     def reset(self):
-        self.state = np.zeros(100)
+        self.state = np.zeros(STATES_COUNT)
         for i in range(1,1):
             location = self.fill_empty_cell(-1)
-        location = self.fill_empty_cell(1)
+
+        #location = self.fill_empty_cell(1)
+        location = 0
+        self.state[0] = 1
+        
         self.pawn_location = location
         #print('self.state', self.state)
         #print(self.state.reshape(10,10))
 
     def play(self, action):
-        if self.state[99] == 1:
+        if self.state[(STATES_COUNT-1)] == 1:
             return self.state, 10, True
-        #self.display_state()
 
+        #self.display_state()
+        
         next_location = -1
 
         if action == 0:
-            next_location = self.pawn_location - 10
-        if action == 1 and self.pawn_location%10 != 9:
+            next_location = self.pawn_location - ROW_COUNT
+        if action == 1 and (self.pawn_location%ROW_COUNT) != (ROW_COUNT-1):
             next_location = self.pawn_location + 1
         if action == 2:
-            next_location = self.pawn_location + 10
-        if action == 3 and self.pawn_location%10 != 0:
+            next_location = (self.pawn_location + ROW_COUNT)
+        if action == 3 and (self.pawn_location%ROW_COUNT != 0):
             next_location = self.pawn_location - 1
-        if next_location < 0 or next_location > 99:
+        if next_location < 0 or (next_location > (STATES_COUNT-1)):
             next_location =  self.pawn_location
         if self.state[next_location] != 0:
             next_location =  self.pawn_location
 
         if next_location == self.pawn_location:
-            return self.state, -0.01, False
+            return self.state, -0.2, False
         else:
             self.state[self.pawn_location] = 0
             #self.display_state()
             self.pawn_location = next_location
             self.state[self.pawn_location] = 1
             #self.display_state()
-            return self.state, -0.01, False
+            return self.state, -0.1, False
 
     def fill_empty_cell(self, value):
-        #print(self.state.reshape(10,10))
-        selected_spot = random.randint(0,99)
-        while self.state[selected_spot] != 0:
-            selected_spot = random.randint(0,99)
+        #print(self.state.reshape(3,3))
+        selected_spot = random.randint(0,STATES_COUNT-1)
+        #while self.state[selected_spot] != 0:
+        #    selected_spot = random.randint(0,STATES_COUNT-1)
         self.state[selected_spot] = value
-        #print(self.state.reshape(10,10))
+        #print(self.state.reshape(3,3))
         return selected_spot
 
     def display_state(self):
-        print(self.state.reshape(10,10))
+        print(self.state.reshape(3,3))
         
         
     
@@ -92,11 +100,11 @@ class DQNAgent:
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=2000)
-        self.gamma = 0.99    # discount rate
+        self.gamma = 0.8   # discount rate
         #self.gamma = 1    # discount rate
         self.epsilon = 1  # exploration rate
-        self.epsilon_min = 0.1
-        self.epsilon_decay = 0.999
+        self.epsilon_min = 0
+        self.epsilon_decay = 0.9999
         #self.learning_rate = 0.001
         self.learning_rate = 0.001
         self.model = self._build_model()
@@ -104,8 +112,8 @@ class DQNAgent:
         # Neural Net for Deep-Q learning Model
         model = Sequential()
         model.add(InputLayer(batch_input_shape=(1,self.state_size)))
-        model.add(Dense(self.state_size, activation='relu'))
-        model.add(Dense(self.state_size, activation='relu'))
+        model.add(Dense(self.state_size*8, activation='relu'))
+        #model.add(Dense(self.state_size, activation='relu'))
         #model.add(Dense(self.state_size, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         #model.add(Dense(self.action_size, activation='softmax'))
@@ -129,7 +137,7 @@ class DQNAgent:
 #4 inputs for state and 4 outputs for action
 number_of_episodes = 10000000
 episode_count = 0
-agent =  DQNAgent(100,4)
+agent =  DQNAgent(STATES_COUNT,4)
 total_rewards = 0
 last_N_rewards = 0
 current_state = None
@@ -139,7 +147,8 @@ while episode_count < number_of_episodes:
     if agent.epsilon > agent.epsilon_min:
         agent.epsilon *= agent.epsilon_decay
 
-    agent.epsilon = 0.2 
+    if agent.epsilon < 0.1:
+        agent.epsilon = 0.1
 
     game.reset()
     done = False
@@ -155,14 +164,40 @@ while episode_count < number_of_episodes:
         agent.add_to_memory(current_state, selected_action, reward, next_state, done)
         episode_reward += reward
     #end of while
+
+
+    if episode_count % 10000 == 0 and agent.epsilon<0.9:
+        print ('finished another 100 episodes')
+        episode_reward = 0
+        game.reset()
+        done = False
+        loop_iterations = 0
+        while not done and loop_iterations < 50:
+            loop_iterations += 1
+            current_state = game.state.copy()
+            action_q_values = agent.act(current_state)
+            #print(current_state.reshape(4,4))
+            #print(action_q_values)
+            selected_action = np.argmax(action_q_values)
+            next_state, reward, done = game.play(selected_action)
+            next_state = game.state.copy()
+            episode_reward += reward
+        if loop_iterations < 49:
+            print('Average Reward:', episode_reward / 10)
+        else:
+            print('did not complete')
+        #end of while
+        continue
+    #end if
+        
     episode_count += 1
 
     local_memory = deque(maxlen=2000)
     discount = 1
     
     for c_state, selected_action, reward, n_state, done in reversed(agent.memory):
-        local_memory.append( (current_state, selected_action, episode_reward * discount, next_state, done) )
-        discount *= agent.gamma         
+        local_memory.append( (current_state, selected_action, reward, next_state, done) )
+        #discount *= agent.gamma         
    
     sample_size = 10
     if len(local_memory) < 10:
@@ -190,10 +225,10 @@ while episode_count < number_of_episodes:
     total_rewards += episode_reward
     last_N_rewards += episode_reward                    
     if episode_count % 10 == 0:
-        print('average_reward', total_rewards/(episode_count))
-        print('average_100_reward', last_N_rewards/10)
-        print('agent.epsilon', agent.epsilon)
-        print('###########################################')
+        #print('average_reward', total_rewards/(episode_count))
+        #print('average_100_reward', last_N_rewards/10)
+        #print('agent.epsilon', agent.epsilon)
+        #print('###########################################')
         last_N_rewards = 0
     agent.clear_memory()
         
